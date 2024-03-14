@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express'
 import { PrismaClient } from '@prisma/client'
 
-import { userSchema } from '@/utils/validations/auth'
+import { authSchema } from '@/utils/validations/auth'
 
 import { comparePassword, hashPassword } from '@/utils/helpers/bcrypt'
 import { signToken } from '@/utils/helpers/jwt'
@@ -16,7 +16,7 @@ export const register = async (
   next: NextFunction,
 ) => {
   try {
-    const safeParse = userSchema.safeParse(req.body)
+    const safeParse = authSchema.safeParse(req.body)
 
     if (safeParse.success) {
       const password = await hashPassword(safeParse.data.password)
@@ -32,7 +32,8 @@ export const register = async (
         },
       })
 
-      return res.status(201).json(user)
+      res.status(201).json(user)
+      return
     }
 
     throw new CustomError(400, safeParse.error.errors[0].message)
@@ -47,7 +48,7 @@ export const authenticate = async (
   next: NextFunction,
 ) => {
   try {
-    const safeParse = userSchema.safeParse(req.body)
+    const safeParse = authSchema.safeParse(req.body)
 
     if (safeParse.success) {
       const user = await prisma.user.findUnique({
@@ -67,7 +68,7 @@ export const authenticate = async (
 
         if (passwordsMatch) {
           const accessToken = signToken({ id: user.id })
-          return res.status(200).json({
+          res.status(200).json({
             accessToken,
             id: user.id,
             username: user.username,
